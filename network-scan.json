@@ -1,0 +1,42 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-04-25T16:31:50-07:00",
+    "name": "NetworkScan",
+    "author": "loki@crazycoder.dev",
+    "description": "Given a set of subnets, tests the available attack surface your Pterodactyl Panel containers can see. Useful for testing firewall isolation rules.",
+    "features": [],
+    "docker_images": {
+        "ghcr.io\/pterodactyl\/yolks:alpine": "ghcr.io\/pterodactyl\/yolks:alpine"
+    },
+    "file_denylist": [],
+    "startup": "\/home\/container\/start.sh",
+    "config": {
+        "files": "{}",
+        "startup": "{\r\n    \"done\": [\r\n        \"Nmap done:\"\r\n    ]\r\n}",
+        "logs": "{}",
+        "stop": "STOP"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!\/bin\/sh\r\nset -eu\r\nDEST=\"${1:-\/mnt\/server}\"\r\napk add --no-cache nmap\r\nmkdir -p \"$DEST\/lib\" \"$DEST\/results\"\r\ncp \/usr\/bin\/nmap \"$DEST\/\"\r\ncp -r \/usr\/share\/nmap \"$DEST\/share\"\r\nldd \/usr\/bin\/nmap | awk '\/=>\/ {print $3}' | xargs cp -t \"$DEST\/lib\/\"\r\ncat > \"$DEST\/scan.sh\" <<'EOF'\r\n#!\/bin\/ash\r\nexport LD_LIBRARY_PATH=lib\r\nexport NMAPDIR=share\r\n\r\n.\/nmap -v --stats-every 15s -sT -Pn -n -p- -T4 --min-parallelism 1000 --max-parallelism 10000 --open -oN results\/scan_$(date +%Y%m%d_%H%M%S).txt ${SCAN_TARGETS}\r\n\r\nwhile IFS= read -r line; do\r\n    case \"$line\" in\r\n        \"STOP\") exit 0 ;;\r\n    esac\r\ndone\r\nEOF\r\nchmod +x \"$DEST\/scan.sh\"",
+            "container": "ghcr.io\/ptero-eggs\/installers:alpine",
+            "entrypoint": "ash"
+        }
+    },
+    "variables": [
+        {
+            "name": "SCAN_TARGETS",
+            "description": "Space-separated list of IPs, hostnames, CIDR ranges, or octet ranges",
+            "env_variable": "SCAN_TARGETS",
+            "default_value": "172.18.0.0\/16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        }
+    ]
+}
